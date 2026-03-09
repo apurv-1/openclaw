@@ -44,6 +44,7 @@ describe("ensureOpenClawCliOnPath", () => {
     "HOMEBREW_PREFIX",
     "HOMEBREW_BREW_FILE",
     "XDG_BIN_HOME",
+    "NPM_CONFIG_PREFIX",
   ] as const;
   let envSnapshot: Record<(typeof envKeys)[number], string | undefined>;
 
@@ -212,4 +213,55 @@ describe("ensureOpenClawCliOnPath", () => {
     expect(parts[0]).toBe(linuxbrewBin);
     expect(parts[1]).toBe(linuxbrewSbin);
   });
+
+  it("prepends ~/.npm-global/bin when the directory exists", () => {
+    const tmp = abs("/tmp/openclaw-path/case-npm-global");
+    setDir(tmp);
+
+    const npmGlobalBin = path.join(tmp, ".npm-global", "bin");
+    setDir(path.join(tmp, ".npm-global"));
+    setDir(npmGlobalBin);
+
+    process.env.PATH = "/usr/bin";
+    delete process.env.OPENCLAW_PATH_BOOTSTRAPPED;
+
+    ensureOpenClawCliOnPath({
+      execPath: "/usr/bin/node",
+      cwd: tmp,
+      homeDir: tmp,
+      platform: "linux",
+    });
+
+    const updated = process.env.PATH ?? "";
+    const parts = updated.split(path.delimiter);
+    expect(parts).toContain(npmGlobalBin);
+    expect(parts.indexOf(npmGlobalBin)).toBeLessThan(parts.indexOf("/usr/bin"));
+  });
+
+  it("prepends NPM_CONFIG_PREFIX/bin when env var is set", () => {
+    const tmp = abs("/tmp/openclaw-path/case-npm-prefix");
+    setDir(tmp);
+
+    const npmPrefix = path.join(tmp, "custom-npm");
+    const npmPrefixBin = path.join(npmPrefix, "bin");
+    setDir(npmPrefix);
+    setDir(npmPrefixBin);
+
+    process.env.PATH = "/usr/bin";
+    delete process.env.OPENCLAW_PATH_BOOTSTRAPPED;
+    process.env.NPM_CONFIG_PREFIX = npmPrefix;
+
+    ensureOpenClawCliOnPath({
+      execPath: "/usr/bin/node",
+      cwd: tmp,
+      homeDir: tmp,
+      platform: "linux",
+    });
+
+    const updated = process.env.PATH ?? "";
+    const parts = updated.split(path.delimiter);
+    expect(parts).toContain(npmPrefixBin);
+    expect(parts.indexOf(npmPrefixBin)).toBeLessThan(parts.indexOf("/usr/bin"));
+  });
+
 });

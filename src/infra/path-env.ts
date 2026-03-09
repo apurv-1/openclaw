@@ -89,6 +89,11 @@ function candidateBinDirs(opts: EnsureOpenClawPathOpts): { prepend: string[]; ap
 
   prepend.push(...resolveBrewPathDirs({ homeDir }));
 
+  // Respect custom npm prefix (set via `npm config set prefix` or NPM_CONFIG_PREFIX env).
+  if (process.env.NPM_CONFIG_PREFIX) {
+    prepend.push(path.join(process.env.NPM_CONFIG_PREFIX, "bin"));
+  }
+
   // Common global install locations (macOS first).
   if (platform === "darwin") {
     prepend.push(path.join(homeDir, "Library", "pnpm"));
@@ -96,6 +101,7 @@ function candidateBinDirs(opts: EnsureOpenClawPathOpts): { prepend: string[]; ap
   if (process.env.XDG_BIN_HOME) {
     prepend.push(process.env.XDG_BIN_HOME);
   }
+  prepend.push(path.join(homeDir, ".npm-global", "bin"));
   prepend.push(path.join(homeDir, ".local", "bin"));
   prepend.push(path.join(homeDir, ".local", "share", "pnpm"));
   prepend.push(path.join(homeDir, ".bun", "bin"));
